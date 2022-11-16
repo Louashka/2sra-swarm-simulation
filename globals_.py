@@ -1,4 +1,4 @@
-DT = 0.05
+DT = 0.01
 
 L_VSS = 40 * 10**(-3)  # VSS length
 L_LINK = 30 * 10**(-3)  # plastic link length
