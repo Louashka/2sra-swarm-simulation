@@ -4,97 +4,63 @@ import graphics
 import random as rnd
 import globals_
 import pandas as pd
+from scipy.optimize import minimize
 
 class Control:
 
-    def __init__(self, q_0):
-        self.q_0 = q_0  # initial configuration
+    def __init__(self, q_start):
+        self.q_start = q_start  # initial configuration
 
-    def shapeFormation():
+    def getCircleTargetPoints(self, scale):
+        FULL_LEGTH = globals_.L_LINK + 2 * (globals_.L_VSS + globals_.L_LU)
+        R = scale * 3 / (2 * np.pi) * FULL_LEGTH
+
+        centroid_x = 0
+        centroid_y = 0
+
+        for q_0 in self.q_start:
+            centroid_x += q_0[0]
+            centroid_y += q_0[1]
+
+        centroid = [centroid_x/len(self.q_start), centroid_y/len(self.q_start)]
+
+        cons = ({'type': 'eq', 'fun': lambda p_t:  np.linalg.norm(np.array([p_t[4],p_t[5]]) - np.array([p_t[0],p_t[1]]))- 3/np.sqrt(3) * R},
+            {'type': 'eq', 'fun': lambda p_t: np.linalg.norm(np.array([p_t[0],p_t[1]]) - np.array([p_t[2],p_t[3]])) - 3/np.sqrt(3) * R},
+            {'type': 'eq', 'fun': lambda p_t:  np.linalg.norm(centroid - np.array([p_t[0],p_t[1]])) - R},
+            {'type': 'eq', 'fun': lambda p_t:  np.linalg.norm(centroid - np.array([p_t[2],p_t[3]])) - R},
+            {'type': 'eq', 'fun': lambda p_t:  np.linalg.norm(centroid - np.array([p_t[4],p_t[5]])) - R})
+
+        p_t_guess = []
+        for i in range(3):
+            p_t_guess.append(centroid[0] + R * np.cos(2*np.pi/3*i))
+            p_t_guess.append(centroid[1] + R * np.sin(2*np.pi/3*i))
+
+        res = minimize(self.fun, p_t_guess, constraints=cons)
+        points = np.reshape(res.x, (-1, 2))
+
+        print(centroid)
+        print(points)
+
+        delta_x = points[:,0] - centroid[0]
+        delta_y = points[:,1] - centroid[1]
+        angles = np.divide(-delta_x, delta_y, out=np.zeros_like(delta_x) + np.pi/2, where=delta_y!=0)
+        print(angles)
+
+        return points
+
+    def fun(self, p_t):
+        p_t = np.reshape(p_t, (-1, 2))
+        f = 0
+        for i in range(len(self.q_start)):
+            f += np.linalg.norm(self.q_start[i][:2] - p_t[i,:])
+
+        return f
+
+
+    def shapeFormationPlanner(self, target_points):
+
         return
 
-    def motionPlanner(self, q_target):
-        # A set of possible stiffness configurations
-        s = [[0, 0], [0, 1], [1, 0], [1, 1]]
-        # Initialize a sequence of VSB stiffness values
-        s_list = []
-        # 2SRR always starts from the rigid state
-        s_list.append(s[0])
-        # Initialize the number of stiffness transitions
-        switch_counter = 0
-
-        # Initialize a trajectory
-        q_list = []
-        q = self.q_0  # current configuration
-        q_list.append(q)
-
-        # A set of possible configurations
-        q_ = [None] * len(s)
-        v_ = [None] * len(s)
-
-        q_t = np.array(q_target)
-        # Euclidean distance between current and target configurations (error)
-        dist = np.linalg.norm(q - q_t)
-
-        t = globals_.DT  # current time
-        # feedback gain
-        velocity_coeff = np.ones((5,), dtype=int)
-        # Index of the current stiffness configuration
-        current_i = None
-
-        while dist > 0:
-
-            flag = False  # indicates whether VSB stiffness has changed
-
-            # INVERSE KINEMATICS
-
-            q_tilda = 1 * (q_t - q) * t
-            for i in range(len(s)):
-                # Jacobian matrix
-                J = kinematics.hybridJacobian(self.q_0, q, s[i])
-                # velocity input commands
-                v_[i] = np.matmul(np.linalg.pinv(J), q_tilda)
-                q_dot = np.matmul(J, v_[i])
-                q_[i] = q + (1 - np.exp(-1 * t)) * q_dot * globals_.DT
-
-            # Determine the stiffness configuration that promotes
-            # faster approach to the target
-            dist_ = np.linalg.norm(q_ - q_t, axis=1)
-            min_i = np.argmin(dist_)
-
-            # The extent of the configuration change
-            delta_q_ = np.linalg.norm(q - np.array(q_), axis=1)
-
-            # Stiffness transition is committed only if the previous
-            # stiffness configuration does not promote further motion
-            if min_i != current_i and current_i is not None:
-                if delta_q_[current_i] > 10**(-17):
-                    min_i = current_i
-                else:
-                    flag = True
-
-            q = q_[min_i]  # update current configuration
-            dist = np.linalg.norm(q - q_t)  # update error
-            current_i = min_i  # update current stiffness
-            if (delta_q_[current_i] > 10 ** (-5)):
-                q_list.append(q)
-                s_list.append(s[current_i])
-            # print(s_list[current_i])
-
-            if flag:
-                switch_counter += 1
-
-            t += globals_.DT  # increment time
-
-        return q_list, s_list, switch_counter
-
-
-def phase_transition(s1, s2):
-    if s1 == 0:
-        return s2
-    if s2 == 0:
-        return s1
-    return s1 * s2
 
 
 if __name__ == "__main__":
@@ -115,9 +81,17 @@ if __name__ == "__main__":
 
     s_start = [[0, 0], [0, 0], [0, 0]]
 
+    # TARGET SWARM SHAPE PARAMETERS
+    scale = 1
+
+    # EXECUTE SHAPE FORMATION
+
+    control = Control(q_start)
+    target_points = control.getCircleTargetPoints(scale)
 
     config_states = [q_start]
     stiffness_states = [s_start]
 
+
     # Animation of the 2SRR motion towards the target
-    graphics.plotMotion(config_states, stiffness_states, 1)
+    graphics.plotMotion(config_states, stiffness_states, scale, target_points, scale)
