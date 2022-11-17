@@ -64,9 +64,8 @@ def init():
 def defineRange():
     margin = 0.06
 
-    q_array = np.array(swarm_config_states)
-    x_min, y_min = q_array[:, :, :2].min(axis=1)[0]
-    x_max, y_max = q_array[:, :, :2].max(axis=1)[0]
+    x_min, y_min = swarm_config_states[:, :, :2].min(axis=1)[0]
+    x_max, y_max = swarm_config_states[:, :, :2].max(axis=1)[0]
 
     ax_range = max(x_max - x_min, y_max - y_min) + margin
 
@@ -101,16 +100,16 @@ def genArc(q, seg):
 def update(i):
     global links, arcs1, arcs2, centres, graph_edges, centroid, circle, target_nodes
 
-    swarm_config = swarm_config_states[i]
-    swarm_stiffness = swarm_stiffness_states[i]
+    swarm_config = swarm_config_states[i,:,:]
+    swarm_stiffness = swarm_stiffness_states[i,:,:]
 
     centroid_x = 0
     centroid_y = 0
 
     for j in range(3):
 
-        q = swarm_config[j]
-        s = swarm_stiffness[j]
+        q = swarm_config[j,:]
+        s = swarm_stiffness[j,:]
         link = links[j]
         arc1, = arcs1[j]
         arc2, = arcs2[j]
@@ -178,14 +177,14 @@ def update(i):
 def plotMotion(config_states, stiffness_states, scale, target, frames):
     global swarm_config_states, swarm_stiffness_states, alpha, target_points
 
-    swarm_config_states = config_states
-    swarm_stiffness_states = stiffness_states
+    swarm_config_states = np.transpose(config_states, (1, 0, 2))
+    swarm_stiffness_states = np.transpose(stiffness_states, (1, 0, 2))
     alpha = scale
     target_points = target
 
 
     anim = FuncAnimation(fig, update, frames,
-                         init_func=init, interval=1, repeat=True)
+                         init_func=init, interval=200, repeat=True)
 
     # Save animation
     # mywriter = FFMpegWriter(fps=30)
