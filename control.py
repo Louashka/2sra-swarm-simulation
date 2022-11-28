@@ -117,7 +117,7 @@ class Control:
 
             # Initialize a trajectory
             q_list = []
-            q = self.q_start[i] # current configuration
+            # q = self.q_start[i] # current configuration
             q_list.append(q)
 
             while dist[i] > 0:
@@ -193,7 +193,7 @@ class Control:
             if target_points[i,1] > self.centroid[1]:
                 kappa[i,:] = -kappa[i,:]
 
-        q_t = np.concatenate((target_points, target_angles.T, kappa), axis=1)
+        q_t = np.concatenate((target_points, target_angles.T, kappa), axis=1qq2)
 
         # Euclidean distance between current and target configurations (error)
         dist = np.sum(np.linalg.norm(q_start - q_t, axis=1))
@@ -211,6 +211,8 @@ class Control:
 
         ind = [x for x in range(self.n)]
 
+        laplacian = np.diag(np.full(self.n,self.n-1))
+        laplacian[laplacian == 0] = -1
 
         while dist > 0:
             q_next = []
@@ -296,7 +298,7 @@ if __name__ == "__main__":
     control = Control(q_start, n, scale)
     target_points, target_angles = control.getCircleTargetPoints()
 
-    config_states, stiffness_states = control.shapeFormationPlanner0(target_points, target_angles)
+    # config_states, stiffness_states = control.shapeFormationPlanner0(target_points, target_angles)
     config_states, stiffness_states = control.shapeFormationPlanner(target_points, target_angles)
 
 
