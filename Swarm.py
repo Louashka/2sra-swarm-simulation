@@ -44,31 +44,6 @@ class Swarm:
 
         return q_start
 
-    def rendezvous(self, q_0):
-
-        trajectories = []
-
-        q_current = q_0
-        trajectories.append(q_current)
-
-        norm = np.linalg.norm(q_current)
-        norm_prev = -norm
-
-        dist = np.sum(norm)
-        t = globals_.DT
-
-        while norm != norm_prev:
-            q_dot = np.matmul(-self.laplacian,q_current)
-            q_current = q_current + q_dot * t * globals_.DT
-            trajectories.append(q_current)
-
-            norm_prev = norm
-            norm = np.linalg.norm(q_current)
-            t += globals_.DT
-
-
-        return trajectories
-
     def getMassCentre(self, q):
         q = np.array(q)
         massCentre = np.mean(q, axis=0)
@@ -106,16 +81,50 @@ class Swarm:
 
             self.edges.append((i, connections[i]))
 
-        return connections
+        return nodes
 
-    def formCircle(self, q_0):
-        cycle_order = self.connectCycleGraph(q_0)
-
+    def reachConsensus(self, q_0, ksi):
         trajectories = []
 
         q_current = q_0
-
         trajectories.append(q_current)
+
+        norm = np.linalg.norm(q_current)
+        norm_prev = -norm
+
+        dist = np.sum(norm)
+        t = globals_.DT
+
+        while norm != norm_prev:
+            q_dot = np.matmul(-self.laplacian,q_current - ksi)
+            q_current = q_current + q_dot * t * globals_.DT
+            trajectories.append(q_current)
+
+            norm_prev = norm
+            norm = np.linalg.norm(q_current)
+            t += globals_.DT
+
+
+        return trajectories
+
+    def rendezvous(self, q_0):
+
+        ksi = np.zeros((self.n, 2))
+        trajectories = self.reachConsensus(q_0, ksi)
+
+        return trajectories
+
+
+    def formCircle(self, q_0, R):
+        nodes_ordered = self.connectCycleGraph(q_0)
+
+        order = nodes_ordered[:,0].argsort()
+        theta = np.array([2*np.pi / self.n * x - np.pi for x in range(self.n)])
+        theta = theta[order]
+        ksi = R * np.column_stack((np.cos(theta),np.sin(theta)))
+
+        trajectories = self.reachConsensus(q_0, ksi)
+
 
         return trajectories
 
@@ -167,7 +176,7 @@ class Swarm:
         self.trajectories = np.array(trajectories)
 
         frames = len(trajectories)
-        anim = FuncAnimation(self.fig, self.anim_update, frames, init_func=self.anim_init, interval=100, repeat=True)
+        anim = FuncAnimation(self.fig, self.anim_update, frames, init_func=self.anim_init, interval=50, repeat=True)
         plt.show()
 
 
@@ -180,5 +189,5 @@ if __name__ == "__main__":
     q_0 = swarm.genRandomStart()
     # tr = swarm.rendezvous(q_0)
 
-    tr = swarm.formCircle(q_0)
+    tr = swarm.formCircle(q_0, 0.2)
     swarm.anim(tr)
