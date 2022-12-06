@@ -1,7 +1,8 @@
-from Swarm import *
+from swarmgraph import *
 
-swarm = Swarm(7, "oriented")
+swarm = SwarmGraph(7, "oriented")
+print(swarm.laplacian)
+swarm.complete_graph()
 
-swarm.collection[3].update([0, 0, 0])
-
-print(swarm.collection[3].y)
+print(swarm)
+print(swarm.laplacian)
