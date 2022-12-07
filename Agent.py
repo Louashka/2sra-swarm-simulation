@@ -68,7 +68,7 @@ class OrientedAgent(DotAgent, object):
 
     @property
     def state(self) -> list:
-        current_state = super().state() + [self.phi]
+        current_state = super().state + [self.phi]
 
         return current_state
 
@@ -107,7 +107,7 @@ class TwoSRAgent(OrientedAgent, object):
 
     @property
     def state(self) -> list:
-        current_state = super().state() + [self.k1, self.k2]
+        current_state = super().state + [self.k1, self.k2]
 
         return current_state
 

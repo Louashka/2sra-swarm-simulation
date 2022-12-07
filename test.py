@@ -1,8 +1,11 @@
-from swarmgraph import *
+import numpy as np
+import mas
 
-swarm = SwarmGraph(7, "oriented")
-print(swarm.laplacian)
-swarm.complete_graph()
+swarm = mas.formation(11, "oriented")
 
-print(swarm)
-print(swarm.laplacian)
+# tr = mas.rendezvous(swarm)
+tr = mas.form_circle(swarm, 0.3)
+
+mas.show_motion(swarm, tr)
+
+
