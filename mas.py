@@ -1,6 +1,7 @@
 import numpy as np
 import globals_
 from graph import *
+import kinematics
 import graphictools
 
 def formation(n, agent_type="dot"):
@@ -11,6 +12,7 @@ def __reach_consensus(formation, ksi):
     trajectories = []
 
     q_current = formation.state
+    q_0 = q_current
     trajectories.append(q_current)
 
     norm = np.linalg.norm(q_current)
@@ -20,8 +22,24 @@ def __reach_consensus(formation, ksi):
     t = globals_.DT
 
     while norm != norm_prev:
-        q_dot = np.matmul(-formation.laplacian, q_current - ksi)
-        q_current = q_current + q_dot * t * globals_.DT
+        if formation.type == "2SR":
+            u = []
+            q_dot = np.matmul(-formation.laplacian, q_current - ksi)
+
+            q_dot_ik = []
+
+            for i in range(formation.n):
+                jacobian = kinematics.hybrid_jacobian(q_0[i], q_current[i], [0, 0])
+                u_i = np.matmul(np.linalg.pinv(jacobian), q_dot[i, :])
+
+                u.append(u_i)
+                q_dot_ik.append(np.matmul(jacobian, u_i))
+
+            q_current = q_current + np.array(q_dot_ik) * t * globals_.DT
+        else:
+            q_dot = np.matmul(-formation.laplacian, q_current - ksi)
+            q_current = q_current + q_dot * t * globals_.DT
+
         trajectories.append(q_current)
 
         norm_prev = norm
@@ -52,6 +70,9 @@ def form_circle(formation, R):
 
     if formation.type == "oriented":
         ksi = np.column_stack((ksi, theta))
+    elif formation.type == "2SR":
+        ksi = np.column_stack((ksi, theta))
+        ksi = np.column_stack((ksi, np.zeros((formation.n, 2))))
 
     trajectories = __reach_consensus(formation, ksi)
 

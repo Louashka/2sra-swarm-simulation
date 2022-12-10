@@ -12,7 +12,7 @@ agents = []
 agents_orientation = []
 edge_lines = []
 
-def defineRange():
+def define_range():
     margin = 0.15
     x_min, y_min = trajectories[:,:,:2].min(axis=1)[0]
     x_max, y_max = trajectories[:,:,:2].max(axis=1)[0]
@@ -25,7 +25,7 @@ def defineRange():
     return x_range, y_range
 
 def anim_init():
-    x_range, y_range = defineRange()
+    x_range, y_range = define_range()
     ax.set_xlim(x_range)
     ax.set_ylim(y_range)
     ax.set_aspect("equal")
@@ -49,15 +49,12 @@ def anim_update(i):
 
         agent.set_data(x, y)
 
-        if swarm.type == "oriented":
+        if swarm.type in {"oriented", "2SR"}:
             phi = q_i[j,2]
             ro_x = [x, x + 0.05 * np.cos(phi)]
             ro_y = [y, y + 0.05 * np.sin(phi)]
 
             agent_orientation.set_data(ro_x, ro_y)
-
-            # if j == 0:
-            #     target_nodes.set_color("magenta")
 
     for edge, j in zip(swarm.all_edges, range(len(swarm.all_edges))):
         edge = list(edge)
@@ -78,7 +75,7 @@ def anim(swarm_, trajectories_):
     trajectories = np.array(trajectories_)
 
     frames = len(trajectories)
-    anim = FuncAnimation(fig, anim_update, frames, init_func=anim_init, interval=50, repeat=True)
+    anim = FuncAnimation(fig, anim_update, frames, init_func=anim_init, interval=25, repeat=True)
 
     # # Save animation
     # mywriter = FFMpegWriter(fps=30)

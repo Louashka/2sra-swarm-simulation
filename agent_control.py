@@ -1,5 +1,5 @@
 import numpy as np
-import sa_kinematics as kinematics
+import agent_kinematics as kinematics
 import graphics
 import random as rnd
 import globals_
@@ -277,38 +277,38 @@ class Control:
 
 
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
 
-    # INITIAL SWARM CONFIGURATION
+#     # INITIAL SWARM CONFIGURATION
 
-    n = 5 # number of agents
+#     n = 5 # number of agents
 
-    q_start = []
-    for i in range(n):
-        q_start.append([rnd.uniform(-0.3, 0.3), rnd.uniform(-0.3, 0.3), rnd.uniform(-0.5, 0.5),
-                   0, 0])
+#     q_start = []
+#     for i in range(n):
+#         q_start.append([rnd.uniform(-0.3, 0.3), rnd.uniform(-0.3, 0.3), rnd.uniform(-0.5, 0.5),
+#                    0, 0])
 
-    s_start = [[0, 0], [0, 0], [0, 0]]
+#     s_start = [[0, 0], [0, 0], [0, 0]]
 
-    # TARGET SWARM SHAPE PARAMETERS
-    scale = 1
+#     # TARGET SWARM SHAPE PARAMETERS
+#     scale = 1
 
-    # EXECUTE SHAPE FORMATION
+#     # EXECUTE SHAPE FORMATION
 
-    control = Control(q_start, n, scale)
-    target_points, target_angles = control.getCircleTargetPoints()
+#     control = Control(q_start, n, scale)
+#     target_points, target_angles = control.getCircleTargetPoints()
 
-    # config_states, stiffness_states = control.shapeFormationPlanner0(target_points, target_angles)
-    config_states, stiffness_states = control.shapeFormationPlanner(target_points, target_angles)
-
-
-    # frames = max(len(config_states[0]), len(config_states[1]), len(config_states[2])) + 50
-    frames = len(config_states)
-
-    # for i in range(n):
-    #     config_states[i] += [config_states[i][-1]] * (frames - len(config_states[i]))
-    #     stiffness_states[i] += [stiffness_states[i][-1]] * (frames - len(stiffness_states[i]))
+#     # config_states, stiffness_states = control.shapeFormationPlanner0(target_points, target_angles)
+#     config_states, stiffness_states = control.shapeFormationPlanner(target_points, target_angles)
 
 
-    # Animation of the 2SRR motion towards the target
-    graphics.plotMotion(config_states, stiffness_states, n, scale, target_points, frames)
+#     # frames = max(len(config_states[0]), len(config_states[1]), len(config_states[2])) + 50
+#     frames = len(config_states)
+
+#     # for i in range(n):
+#     #     config_states[i] += [config_states[i][-1]] * (frames - len(config_states[i]))
+#     #     stiffness_states[i] += [stiffness_states[i][-1]] * (frames - len(stiffness_states[i]))
+
+
+#     # Animation of the 2SRR motion towards the target
+#     graphics.plotMotion(config_states, stiffness_states, n, scale, target_points, frames)

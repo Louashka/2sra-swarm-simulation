@@ -33,7 +33,7 @@ def fk(q_start, sigma, v, sim_time):
     return q_list
 
 
-def hybridJacobian(q_start, q, sigma):
+def hybrid_jacobian(q_start, q, sigma):
 
     # We divide a Jacobian matrix into 2 parts, which correspond
     # to the rigid and soft states of the 2SR robot
@@ -78,9 +78,9 @@ def hybridJacobian(q_start, q, sigma):
     #  Proportionality coefficients of the rate of change of 2SRR position coordinates
     Delta = np.zeros((2, 2))
     Delta[:, 0] = (flag_soft2 * Kappa[1, 1] + flag_full_soft * Kappa[1, 2]) * \
-        getBodyFrame(rho[1, 0], q_start[2], q[4], q_start[4], 2).ravel()
+        get_body_frame(rho[1, 0], q_start[2], q[4], q_start[4], 2).ravel()
     Delta[:, 1] = (flag_soft1 * Kappa[0, 1] + flag_full_soft * Kappa[0, 2]) * \
-        getBodyFrame(rho[0, 0], q_start[2], q[3], q_start[3], 1).ravel()
+        get_body_frame(rho[0, 0], q_start[2], q[3], q_start[3], 1).ravel()
 
     J_soft = np.array([[-flag_soft2 * Phi[1, 1] - flag_full_soft * Phi[1, 2],
                         flag_soft1 * Phi[0, 1] + flag_full_soft * Phi[0, 2]],
@@ -102,7 +102,7 @@ def hybridJacobian(q_start, q, sigma):
 # must be used to update the matrices in getBodyFrame()
 
 
-def getBodyFrame(r, phi, k, k0, seg):
+def get_body_frame(r, phi, k, k0, seg):
 
     if seg == 1:
         pos = np.array([[-0.0266 * r * np.sin(phi + 0.0266 * k - 0.04 * k0) - 0.0006 * np.sin(phi + 0.04 * k - 0.04 * k0)],
@@ -111,12 +111,12 @@ def getBodyFrame(r, phi, k, k0, seg):
     elif seg == 2:
         pos = np.array([[-0.0266 * r * np.sin(phi - 0.0266 * k + 0.04 * k0) - 0.0006 * np.sin(phi - 0.04 * k + 0.04 * k0)],
                         [0.0266 * r * np.cos(phi - 0.0266 * k + 0.04 * k0) + 0.0006 * np.cos(phi - 0.04 * k + 0.04 * k0)]])
-        # pos = bodyFramePosition(1)
+        # pos = body_frame_position(1)
 
     return pos
 
 
-def bodyFramePosition(flag):
+def body_frame_position(flag):
 
     x = sym.Symbol('x')  # 2SRR x coordinate
     y = sym.Symbol('y')  # 2SRR y coordinate
