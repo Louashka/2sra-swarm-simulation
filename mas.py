@@ -61,13 +61,17 @@ def rendezvous(formation) -> list:
 
     return trajectories
 
-def form_circle(formation, R) -> list:
+def form_regular_polygon(formation, R) -> list:
 
-    if not formation.is_cycle or formation.is_complete:
-        formation.cycle()
+    # if not formation.is_cycle or formation.is_complete:
+    #     formation.cycle()
+
+    if not formation.is_connected:
+        formation.min_rigid()
 
     order = formation.sort_nodes_by_angles().argsort()
     theta = np.array([2*np.pi / formation.n * x - np.pi/2 for x in range(formation.n)])
+    print(theta)
     theta = theta[order]
     ksi = R * np.column_stack((np.cos(theta),np.sin(theta)))
 
@@ -80,10 +84,6 @@ def form_circle(formation, R) -> list:
     trajectories = __reach_consensus(formation, ksi)
 
     return trajectories
-
-def form_regular_polygon(formation):
-    if not formation.is_connected:
-        formation.min_rigid()
 
 def show_motion(formation, trajectories):
 

@@ -82,6 +82,9 @@ def anim_update(i):
 
         agent.set_data(x, y)
 
+        if j == 0:
+            agent.set_color("magenta")
+
         if swarm.type in {"oriented", "2SR"}:
             phi = q_i_j[2] + np.pi/2
             ro_x = [x, x + 0.05 * np.cos(phi)]
