@@ -153,7 +153,7 @@ class Graph:
 
         return self
 
-    def cycle(self) -> object:
+    def cycle(self) -> list:
         nodes = self.sort_nodes_by_angles()
 
         self.__laplacian = np.diag(np.full(self.n,2))
@@ -178,6 +178,26 @@ class Graph:
         self.__is_connected = True
         self.__is_complete = False
         self.__is_cycle = True
+
+        return nodes
+
+    def min_rigid(self) -> object:
+        nodes = self.cycle()
+
+        if len(nodes) > 3:
+            id1 = nodes[0]
+            print(id1)
+            for i in range(2, len(nodes)-1) :
+                id2 = nodes[i]
+                print(id2)
+
+                node1 = self.collection[id1]
+                node2 = self.collection[id2]
+
+                self.add_edge(node1, node2)
+
+                self.__laplacian[id1, id2] = -1
+                self.__laplacian[id2, id1] = -1
 
         return self
 
