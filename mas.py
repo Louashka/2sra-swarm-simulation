@@ -71,17 +71,26 @@ def form_regular_polygon(formation, R) -> list:
 
     order = formation.sort_nodes_by_angles().argsort()
     theta = np.array([2*np.pi / formation.n * x - np.pi/2 for x in range(formation.n)])
-    print(theta)
     theta = theta[order]
     ksi = R * np.column_stack((np.cos(theta),np.sin(theta)))
 
     if formation.type == "oriented":
-        ksi = np.column_stack((ksi, theta))
+        angles = np.array([2*np.pi / formation.n * x for x in range(formation.n)])
+        print(angles)
+        angles = angles[order]
+        ksi = np.column_stack((ksi, angles))
     elif formation.type == "2SR":
         ksi = np.column_stack((ksi, theta))
         ksi = np.column_stack((ksi, np.zeros((formation.n, 2))))
 
     trajectories = __reach_consensus(formation, ksi)
+
+    return trajectories
+
+def shape_to(formation, target_shape):
+    trajectories = []
+
+
 
     return trajectories
 

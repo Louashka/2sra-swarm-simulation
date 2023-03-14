@@ -155,7 +155,6 @@ class Graph:
 
     def cycle(self) -> list:
         nodes = self.sort_nodes_by_angles()
-        print(nodes[0])
 
         self.__laplacian = np.diag(np.full(self.n,2))
 
@@ -200,8 +199,6 @@ class Graph:
 
                 self.__laplacian[id1, id1] += 1
                 self.__laplacian[id2, id2] += 1
-
-        print(self.laplacian)
 
         return self
 
