@@ -4,191 +4,118 @@ from matplotlib.animation import FuncAnimation
 from matplotlib.animation import FFMpegWriter
 from matplotlib.patches import Rectangle
 import numpy as np
-import pandas as pd
-import globals_
 
+a = 1
+b = 1
 
-link_width = globals_.D_BRIDGE
-link_length = globals_.L_LINK
+swarm = None
+path = []
+q = []
+theta = []
 
-LINK_DIAG = ((link_length / 2)**2 + (link_width / 2)**2)**(1 / 2)
-FULL_LEGTH = globals_.L_LINK + 2 * (globals_.L_VSS + globals_.L_LU)
+l_axis = 0.2
+alpha = 0
 
-alpha = 1
-R = 1
-n = 1
-target_points = []
-swarm_config_states = []
-swarm_stiffness_states = []
+theta_all = np.linspace(0, 2 * np.pi, 50)
+contour_0 = []
 
-links = []
-arcs1 = []
-arcs2 = []
-centres = []
-# graph_edges = []
-target_nodes = []
-
-font_size = 22
 fig, ax = plt.subplots()
-plt.xticks(fontsize = font_size)
-plt.yticks(fontsize = font_size)
 
-centroid, = ax.plot([], [], lw=2, marker="*", color="magenta")
-circle, = ax.plot([], [], lw=1, linestyle="dashed", color="magenta")
+centroid, = ax.plot([], [], lw=2, marker='*', color='red')
+ellipse, = ax.plot([], [], lw=1, color='blue')
 
-x_range = 0
-y_range = 0
+x_axis, = ax.plot([], [], lw=1, color='blue')
+y_axis, = ax.plot([], [], lw=1, color='red')
+
+centroid_d, = ax.plot([], [], lw=2, marker='*', color='red')
+ellipse_d, = ax.plot([], [], lw=1, linestyle='dashed', color='green')
+
+x_axis_d, = ax.plot([], [], lw=1, color='blue')
+y_axis_d, = ax.plot([], [], lw=1, color='red')
+
+path_curve = None
+
+agents = []
+
+agent1, = ax.plot([], [], lw=2, marker='o', color='magenta')
+agent2, = ax.plot([], [], lw=2, marker='o', color='magenta')
+agent3, = ax.plot([], [], lw=2, marker='o', color='magenta')
+
+
+def defineRange():
+    margin = 1
+
+    x_min, y_min = path[:, :2].min(axis=0)
+    x_max, y_max = path[:, :2].max(axis=0)
+
+    ax_range = max(x_max - x_min, y_max - y_min) + margin
+
+    x_range = (x_min - ax_range/2, x_min + ax_range)
+    y_range = (y_min - ax_range/3, y_min + ax_range)
+
+    return x_range, y_range
 
 
 def init():
-    global ax, x_range, y_range, R
+    global ax, path_curve, contour_0
 
     x_range, y_range = defineRange()
     ax.set_xlim(x_range)
     ax.set_ylim(y_range)
     ax.set_aspect("equal")
 
-    for link in links:
-        ax.add_patch(link)
+    for i in range(swarm.n):
+        agents.append(ax.plot([], [], markersize=3, marker='o', color='magenta'))
 
-    R = alpha * n / (2 * np.pi) * FULL_LEGTH
+    path_curve = ax.scatter(path[:,0], path[:,1], lw=2, marker='.', color='black')
 
-    for i in range(n):
-        links.append(Rectangle((0, 0), 0, 0, fc='y'))
-        arcs1.append(ax.plot([], [], lw=2, color="blue"))
-        arcs2.append(ax.plot([], [], lw=2, color="blue"))
-        centres.append(ax.plot([], [], lw=1, marker=".", color="black"))
-        # graph_edges.append(ax.plot([], [], lw=1, linestyle='dashed', color="black"))
-        target_nodes.append(ax.plot([], [], lw=2, marker=".", color="magenta"))
+    centre_d = [path[-1,0], path[-1,1]]
+    centroid_d.set_data(centre_d[0], centre_d[1])
 
+    contour_0 = [a * np.cos(theta_all), b * np.sin(theta_all)]
 
-def defineRange():
-    margin = 0.1
+    R_d = np.array([[np.cos(path[-1,2]), -np.sin(path[-1,2])], [np.sin(path[-1,2]), np.cos(path[-1,2])]])
+    contour_d = np.array([centre_d]).T + R_d.dot(np.array(contour_0))
 
-    x_min, y_min = swarm_config_states[:, :, :2].min(axis=1)[0]
-    x_max, y_max = swarm_config_states[:, :, :2].max(axis=1)[0]
+    ellipse_d.set_data(contour_d[0], contour_d[1])
 
-    ax_range = max(x_max - x_min, y_max - y_min) + margin
-
-    x_range = (x_min - margin, x_min + ax_range)
-    y_range = (y_min - margin, y_min + ax_range)
-
-    return x_range, y_range
+    x_axis_d.set_data([centre_d[0], centre_d[0] + l_axis * np.cos(path[-1,2])], [centre_d[1], centre_d[1] + l_axis * np.sin(path[-1,2])])
+    y_axis_d.set_data([centre_d[0], centre_d[0] + l_axis * np.cos(path[-1,2] + np.pi / 2)], [centre_d[1], centre_d[1] + l_axis * np.sin(path[-1,2] + np.pi / 2)])
 
 
-def genArc(q, seg):
-    s = np.linspace(0, globals_.L_VSS, 50)
-
-    flag = -1 if seg == 1 else 1
-
-    gamma_array = q[2] + flag * q[2 + seg] * s
-
-    x_0 = q[0] + flag * np.cos(q[2]) * link_length / 2
-    y_0 = q[1] + flag * np.sin(q[2]) * link_length / 2
-
-    if q[2 + seg] == 0:
-        x = x_0 + [0, flag * globals_.L_VSS * np.cos(q[2])]
-        y = y_0 + [0, flag * globals_.L_VSS * np.sin(q[2])]
-    else:
-        x = x_0 + np.sin(gamma_array) / \
-            q[2 + seg] - np.sin(q[2]) / q[2 + seg]
-        y = y_0 - np.cos(gamma_array) / \
-            q[2 + seg] + np.cos(q[2]) / q[2 + seg]
-
-    return [x, y]
+    return path_curve, centroid_d, ellipse_d, x_axis_d, y_axis_d,
 
 
 def update(i):
-    global links, arcs1, arcs2, centres, centroid, circle, target_nodes
+    # global links, arcs1, arcs2, centres, centroid, circle, target_nodes
 
-    swarm_config = swarm_config_states[i,:,:]
-    swarm_stiffness = swarm_stiffness_states[i,:,:]
+    centre = [q[i][0], q[i][1]]
+    centroid.set_data(centre[0], centre[1])
 
-    # print(swarm_config[0,:2])
+    R = np.array([[np.cos(q[i][2]), -np.sin(q[i][2])], [np.sin(q[i][2]), np.cos(q[i][2])]])
+    contour = np.array([centre]).T + R.dot(np.array(contour_0))
 
-    centroid_x = 0
-    centroid_y = 0
+    ellipse.set_data(contour[0], contour[1])
 
-    for j in range(n):
+    for j in range(swarm.n):
+        agent_position = R.dot(np.array([[a * np.cos(theta[i][j]), b * np.sin(theta[i][j])]]).T)
+        agent, = agents[j]
+        agent.set_data(centre[0] + agent_position[0], centre[1] + agent_position[1])
 
-        q = swarm_config[j,:]
-        s = swarm_stiffness[j,:]
-        link = links[j]
-        arc1, = arcs1[j]
-        arc2, = arcs2[j]
-        centre,= centres[j]
-        # edge, = graph_edges[j]
-        node, = target_nodes[j]
-
-        # if j < n-1:
-        #     q_neighbour = swarm_config[j+1]
-        # else:
-        #     q_neighbour = swarm_config[0]
-
-        x = q[0]
-        y = q[1]
-        phi = q[2]
-
-        x0 = x - link_length / 2
-        y0 = y - link_width / 2
-
-        link.set_width(link_length)
-        link.set_height(link_width)
-        link.set_xy([x0, y0])
-
-        transform = mpl.transforms.Affine2D().rotate_around(
-            x, y, phi) + ax.transData
-        link.set_transform(transform)
-
-        seg1 = genArc(q, 1)
-        seg2 = genArc(q, 2)
-
-        arc1.set_data(seg1[0], seg1[1])
-        arc2.set_data(seg2[0], seg2[1])
-
-        if s[0] == 0:
-            arc1.set_color("blue")
-        else:
-            arc1.set_color("red")
-
-        if s[1] == 0:
-            arc2.set_color("blue")
-        else:
-            arc2.set_color("red")
-
-        centre.set_data(x, y)
-
-        # edge_x = np.linspace(q[0], q_neighbour[0])
-        # edge_y = np.linspace(q[1], q_neighbour[1])
-        # edge.set_data(edge_x, edge_y)
-
-        centroid_x += q[0]
-        centroid_y += q[1]
-
-        node.set_data(target_points[j,0], target_points[j,1])
-
-    centroid_x = centroid_x/n
-    centroid_y = centroid_y/n
-    centroid.set_data(centroid_x, centroid_y)
-
-    t = np.linspace(0, 2*np.pi)
-    circle.set_data(centroid_x + R * np.cos(t), centroid_y + R * np.sin(t))
-
-    return links, arcs1, arcs2, centres, centroid, circle,
+    return centroid, ellipse,
 
 
-def plotMotion(config_states, stiffness_states, agents_number, scale, target, frames):
-    global swarm_config_states, swarm_stiffness_states, alpha, n, target_points
+def plot_motion(swarm_, a_, b_, path_, q_, theta_):
+    global swarm, a, b, path, q, theta
 
-    # swarm_config_states = np.transpose(config_states, (1, 0, 2))
-    # swarm_stiffness_states = np.transpose(stiffness_states, (1, 0, 2))
+    swarm = swarm_
+    a = a_
+    b = b_
+    path = path_
+    q = q_
+    theta = theta_
 
-    swarm_config_states = np.array(config_states)
-    swarm_stiffness_states = np.array(stiffness_states)
-
-    alpha = scale
-    n = agents_number
-    target_points = target
+    frames = len(q)
 
 
     anim = FuncAnimation(fig, update, frames,
