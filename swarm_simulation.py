@@ -1,4 +1,5 @@
 import numpy as np
+import random as rnd
 import matplotlib.pyplot as plt
 from graph import Graph
 import mas
@@ -32,10 +33,13 @@ path = []
 q_current = q_0
 path.append(q_current)
 
+velocity = [0, 1, 0.3]
+# velocity = [rnd.uniform(-1, 1), rnd.uniform(-1, 1), rnd.uniform(-0.8, 0.8)]
+# print(velocity)
+
 while  t < 3:
     R = np.array([[np.cos(q_current[2]), -np.sin(q_current[2]), 0], [np.sin(q_current[2]), np.cos(q_current[2]), 0], [0, 0, 1]])
 
-    velocity = [0, 1, -0.3]
     q_dot = R.dot(velocity)
 
     q_current = q_current + q_dot * dt
@@ -57,18 +61,19 @@ path = np.array(path)
 
 # OPTIMISATION PROBLEM
 
-swarm = Graph(3)
+n = 3
+swarm = Graph(n)
 
 theta = []
 L = []
 q = []
+flags = []
 
 q_current = q_0
 
 grasp_model = ori.GraspModel(swarm, a, b, q_current, path[1,:])
 
 for q_d in path[1:,:]:
-    print(q_d)
     grasp_model.update(q_current, q_d)
     result = grasp_model.solve()
 
@@ -77,15 +82,28 @@ for q_d in path[1:,:]:
     theta.append(result[0])
     L.append(result[1])
     q.append(q_current)
+    # flags.append(result[3])
 
+# for l in L:
+#     print([l[0], l[1]])
 
-x_robots = []
-y_robots = []
+# for flag, th in zip(flags, theta):
+#     print([abs(th[0] - th[1]), abs(th[1] - th[2]), abs(th[0] - th[2])])
+#     print(flag)
 
-for theta_i in theta[0]:
-    x_robots.append(centre[0] + a * np.cos(theta_i))
-    y_robots.append(centre[1] + b * np.sin(theta_i))
+print()
+D = np.eye(n)
+for i in range(n):
+    for j in range(n):
+        if j == i + 1:
+            D[i, j] = -1
 
+D[n-1, 0] = 1
+D[n-1, n-1] = -1
+
+# for th in theta:
+#     print(th)
+#     print(D.dot(th))
 
 # PLOT THE RESULT
 
