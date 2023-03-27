@@ -33,7 +33,7 @@ path = []
 q_current = q_0
 path.append(q_current)
 
-velocity = [0, 1, 0.3]
+velocity = [0, 1, -0.3]
 # velocity = [rnd.uniform(-1, 1), rnd.uniform(-1, 1), rnd.uniform(-0.8, 0.8)]
 # print(velocity)
 
@@ -61,7 +61,8 @@ path = np.array(path)
 
 # OPTIMISATION PROBLEM
 
-n = 3
+n = 2
+cp_n = 3
 swarm = Graph(n)
 
 theta = []
@@ -71,7 +72,7 @@ flags = []
 
 q_current = q_0
 
-grasp_model = ori.GraspModel(swarm, a, b, q_current, path[1,:])
+grasp_model = ori.GraspModel(swarm, cp_n, a, b, q_current, path[1,:])
 
 for q_d in path[1:,:]:
     grasp_model.update(q_current, q_d)
@@ -91,23 +92,13 @@ for q_d in path[1:,:]:
 #     print([abs(th[0] - th[1]), abs(th[1] - th[2]), abs(th[0] - th[2])])
 #     print(flag)
 
-print()
-D = np.eye(n)
-for i in range(n):
-    for j in range(n):
-        if j == i + 1:
-            D[i, j] = -1
-
-D[n-1, 0] = 1
-D[n-1, n-1] = -1
-
-# for th in theta:
-#     print(th)
+for th in theta:
+    print(th)
 #     print(D.dot(th))
 
 # PLOT THE RESULT
 
-graphics.plot_motion(swarm, a, b, path[::5], q, theta)
+graphics.plot_motion(swarm, cp_n, a, b, path[::5], q, theta)
 
 
 # tr = mas.rendezvous(swarm)

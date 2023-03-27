@@ -9,6 +9,7 @@ a = 1
 b = 1
 
 swarm = None
+cp_n = 1
 path = []
 q = []
 theta = []
@@ -64,7 +65,7 @@ def init():
     ax.set_ylim(y_range)
     ax.set_aspect("equal")
 
-    for i in range(swarm.n):
+    for i in range(cp_n * swarm.n):
         agents.append(ax.plot([], [], markersize=3, marker='o', color='magenta'))
 
     path_curve = ax.scatter(path[:,0], path[:,1], lw=2, marker='.', color='black')
@@ -97,7 +98,7 @@ def update(i):
 
     ellipse.set_data(contour[0], contour[1])
 
-    for j in range(swarm.n):
+    for j in range(cp_n * swarm.n):
         agent_position = R.dot(np.array([[a * np.cos(theta[i][j]), b * np.sin(theta[i][j])]]).T)
         agent, = agents[j]
         agent.set_data(centre[0] + agent_position[0], centre[1] + agent_position[1])
@@ -105,10 +106,11 @@ def update(i):
     return centroid, ellipse,
 
 
-def plot_motion(swarm_, a_, b_, path_, q_, theta_):
-    global swarm, a, b, path, q, theta
+def plot_motion(swarm_, cp_n_, a_, b_, path_, q_, theta_):
+    global swarm, cp_n, a, b, path, q, theta
 
     swarm = swarm_
+    cp_n = cp_n_
     a = a_
     b = b_
     path = path_
