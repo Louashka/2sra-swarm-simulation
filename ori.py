@@ -1,15 +1,23 @@
 import pyomo.environ as pe
 import pyomo.opt as po
 import numpy as np
+import shape
 
 class GraspModel():
-    def __init__(self, swarm, cp_n, a, b, q_0, q_d) -> None:
+    def __init__(self, swarm, cp_n, a, b, length, q_0, q_d) -> None:
 
         self.__n = swarm.n
         self.__cp_n = cp_n
         self.__N = cp_n * swarm.n
         self.__a = a
         self.__b = b
+        self.__length = length
+
+        self.__m = 50
+        self.__theta = np.linspace(0, 2 * np.pi, self.__m)
+
+        self.__contour = [a * np.cos(self.__theta), b * np.sin(self.__theta)]
+        self.__k = shape.get_curvature(self.__contour[0], self.__contour[1])
 
         self.__dt = 1
         self.__e = np.pi / 12
@@ -25,6 +33,7 @@ class GraspModel():
         # Define sets
 
         self.__model.dof = pe.RangeSet(1, 3)
+        self.__model.contour_points = pe.RangeSet(1, self.__m)
         self.__model.contact_points = pe.RangeSet(1, self.__N)
         self.__model.forces = pe.RangeSet(1, 2 * self.__N)
         self.__model.joints = pe.Set(initialize=[i for i in self.__model.contact_points if i % self.__cp_n != 0])
@@ -37,13 +46,6 @@ class GraspModel():
         if self.__N > 2:
             hat_theta_array[-2] = 2 * np.pi
 
-        hat_theta = {}
-        epsilon = {}
-
-        for i in self.__model.contact_points:
-            hat_theta.update({i: hat_theta_array[i-1]})
-            epsilon.update({i: self.__e})
-
         def __get_neighbours(m, i, j):
             if i == j:
                 return 1
@@ -54,11 +56,13 @@ class GraspModel():
 
         self.__model.a = self.__a
         self.__model.b = self.__b
+        self.__model.length = self.__length
         self.__model.c = pe.Param(self.__model.dof, initialize={1: -0.981, 2: 0.196, 3: -0.49})
         # self.__model.c = pe.Param(self.__model.dof, initialize={1: 0.196, 2: -0.981, 3: -0.098})
+
         self.__model.D = pe.Param(self.__model.contact_points, self.__model.contact_points, initialize=__get_neighbours)
-        self.__model.hat_theta = pe.Param(self.__model.contact_points, initialize=hat_theta)
-        self.__model.epsilon = pe.Param(self.__model.contact_points, initialize=epsilon)
+        self.__model.hat_theta = pe.Param(self.__model.contact_points, initialize=dict(zip(self.__model.contact_points, hat_theta_array)))
+        self.__model.epsilon = pe.Param(self.__model.contact_points, initialize=dict(zip(self.__model.contact_points, [self.__e] * self.__model.contact_points[-1])))
 
         self.__model.q_d = pe.Param(self.__model.dof, initialize={1: q_d[0], 2: q_d[1], 3: q_d[2]}, mutable=True)
         self.__model.q_0 = pe.Param(self.__model.dof, initialize={1: q_0[0], 2: q_0[1], 3: q_0[2]}, mutable=True)
@@ -68,7 +72,6 @@ class GraspModel():
         self.__model.theta = pe.Var(self.__model.contact_points, domain=pe.Reals, bounds=(-np.pi, np.pi))
         self.__model.L = pe.Var(self.__model.forces, domain=pe.NonNegativeReals)
         self.__model.q = pe.Var(self.__model.dof, domain=pe.Reals)
-        self.__model.flag = pe.Var(self.__model.contact_points, within=pe.Binary)
 
         # Define the objective
 

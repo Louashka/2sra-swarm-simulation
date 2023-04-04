@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.special import binom
+from scipy.interpolate import UnivariateSpline
 import matplotlib.pyplot as plt
 
 bernstein = lambda n, k, t: binom(n,k)* t**k * (1.-t)**(n-k)
@@ -82,6 +83,24 @@ def get_random_points(n=5, scale=0.8, mindst=None, rec=0):
         return a*scale
     else:
         return get_random_points(n=n, scale=scale, mindst=mindst, rec=rec+1)
+
+
+def get_curvature(x, y=None, error=0.1):
+    if y is None:
+        x, y = x.real, x.imag
+
+    t = np.arange(x.shape[0])
+    std = error * np.ones_like(x)
+
+    fx = UnivariateSpline(t, x, k=4, w=1 / np.sqrt(std))
+    fy = UnivariateSpline(t, y, k=4, w=1 / np.sqrt(std))
+
+    xˈ = fx.derivative(1)(t)
+    xˈˈ = fx.derivative(2)(t)
+    yˈ = fy.derivative(1)(t)
+    yˈˈ = fy.derivative(2)(t)
+    curvature = (xˈ* yˈˈ - yˈ* xˈˈ) / np.power(xˈ** 2 + yˈ** 2, 3 / 2)
+    return curvature
 
 
 # fig, ax = plt.subplots()

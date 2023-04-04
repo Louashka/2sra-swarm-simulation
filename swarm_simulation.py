@@ -5,6 +5,7 @@ from graph import Graph
 import mas
 import ori
 import graphics
+import shape
 
 
 # ORIGINAL SHAPE
@@ -15,6 +16,7 @@ b = 0.6
 theta = np.linspace(0, 2 * np.pi, 50)
 
 contour = [a * np.cos(theta), b * np.sin(theta)]
+k = shape.get_curvature(contour[0], contour[1])
 
 axis_r = 0.2
 alpha = 0
@@ -65,6 +67,8 @@ n = 2
 cp_n = 3
 swarm = Graph(n)
 
+length = 0.04
+
 theta = []
 L = []
 q = []
@@ -72,7 +76,7 @@ flags = []
 
 q_current = q_0
 
-grasp_model = ori.GraspModel(swarm, cp_n, a, b, q_current, path[1,:])
+grasp_model = ori.GraspModel(swarm, cp_n, a, b, length, q_current, path[1,:])
 
 for q_d in path[1:,:]:
     grasp_model.update(q_current, q_d)
@@ -92,8 +96,8 @@ for q_d in path[1:,:]:
 #     print([abs(th[0] - th[1]), abs(th[1] - th[2]), abs(th[0] - th[2])])
 #     print(flag)
 
-for th in theta:
-    print(th)
+# for th in theta:
+#     print(th)
 #     print(D.dot(th))
 
 # PLOT THE RESULT
