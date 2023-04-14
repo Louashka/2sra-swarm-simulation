@@ -1,7 +1,10 @@
 import numpy as np
+from matplotlib import cm
 import matplotlib.pyplot as plt
 import scipy.optimize as opt
 from scipy.interpolate import UnivariateSpline
+import shape
+from pyefd import elliptic_fourier_descriptors, plot_efd
 
 def get_r(a, b, theta):
     e = np.sqrt(1 - (b**2) / (a**2))
@@ -65,10 +68,63 @@ result = opt.fsolve(func, (0, 0), args = (x1, y1, x2, y2, r_avrg))
 contour_new = [result[0] + r_avrg * np.cos(theta), result[1] + r_avrg * np.sin(theta)]
 
 
-plt.plot(contour[0], contour[1])
-plt.plot(contour_new[0], contour_new[1], '--')
-plt.plot(x1, y1, 'ro')
-plt.plot(x2, y2, 'ro')
+# plt.plot(contour[0], contour[1])
+# plt.plot(contour_new[0], contour_new[1], '--')
+# plt.plot(x1, y1, 'ro')
+# plt.plot(x2, y2, 'ro')
+
+# ax = plt.gca()
+# ax.set_aspect('equal', adjustable='box')
+
+# plt.show()
+
+##########################################################
+
+contour = shape.get_bezier_curve()
+
+# centre = [0, 0]
+# a = 1
+# b = 0.6
+# theta = np.linspace(0, 2 * np.pi, 50)
+
+# contour = [a * np.cos(theta), b * np.sin(theta)]
+
+# t1 = np.linspace(1, -1, 100, endpoint=False)
+# y1 = (t1**2 + 0.5) * np.sqrt(1 - t1**2)
+
+# t2 = np.linspace(-1, 1, 100)
+# y2 = -(t2**2 + 0.5) * np.sqrt(1 - t2**2)
+
+# contour = [np.concatenate((t1,t2)), np.concatenate((y1,y2))]
+
+contour = np.array(contour[:2]).T
+com = np.average(contour, axis=0)
+
+m = 10
+coeffs = elliptic_fourier_descriptors(contour, order=m)
+
+z = []
+s_array = np.linspace(0, 1, 500)
+for i in range(m):
+    z_k = np.zeros((len(s_array),2))
+    j = 0
+    coef = coeffs[i,:].reshape(2, 2)
+    for s in s_array:
+        arg = 2 * np.pi * (i + 1) * s
+        exp = np.array([[np.cos(arg)], [np.sin(arg)]])
+        z_k[j, :] = np.matmul(coef, exp).T
+        j += 1
+    z.append(z_k)
+
+plot_efd(coeffs, contour=contour)
+
+contour_fourier = sum(z)
+com_fourier = np.average(contour_fourier, axis=0)
+contour_fourier = contour_fourier - com_fourier
+
+
+plt.plot(contour[:,0], contour[:,1])
+plt.plot(contour_fourier[:,0], contour_fourier[:,1], '--')
 
 ax = plt.gca()
 ax.set_aspect('equal', adjustable='box')

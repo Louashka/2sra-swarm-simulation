@@ -1,19 +1,48 @@
 import shape
+from pyefd import elliptic_fourier_descriptors, plot_efd
 import cv2 as cv
+import numpy as np
 
 class Manipulandum(object):
 
     def __init__(self) -> None:
-        self.contour = shape.get_bezier_curve()
-        self.com = self.com()
+        self.__contour = self.__generate_contour()
+        self.__phi = 0
 
-    def com():
-        # x = sum(contour[0]) / len(contour[0])
-        # y = sum(contour[1]) / len(contour[1])
+    def __generate_contour(self):
+        contour_original = shape.get_bezier_curve()
+
+        contour_original = np.array(contour_original[:2])
+        contour_original -= self.__com(contour_original)
+
+        m = 10
+        coeffs = elliptic_fourier_descriptors(contour_original.T, order=m)
+
+        z = []
+        s_array = np.linspace(0, 1, 500)
+        for i in range(m):
+            z_k = np.zeros((len(s_array),2))
+            j = 0
+            coef = coeffs[i,:].reshape(2, 2)
+            for s in s_array:
+                arg = 2 * np.pi * (i + 1) * s
+                exp = np.array([[np.cos(arg)], [np.sin(arg)]])
+                z_k[j, :] = np.matmul(coef, exp).T
+                j += 1
+            z.append(z_k)
+
+        contour_fourier = sum(z).T
+        contour_fourier -= self.__com(contour_fourier)
+
+        self.__com = self.__com(contour_fourier)
+
+        return contour_fourier
+
+    def __com(self, contour):
         points = []
-        for i in range(len(self.contour[0])):
-            x = int(self.contour[0][i] * 1000)
-            y = int(self.contour[1][i] * 1000)
+        for i in range(contour[0].shape[0]):
+            x = int(contour[0, i] * 1000)
+            y = int(contour[1, i] * 1000)
 
             point = [x, y]
             points.append([point])
@@ -22,9 +51,11 @@ class Manipulandum(object):
         x = int(M["m10"] / M["m00"]) / 1000
         y = int(M["m01"] / M["m00"]) / 1000
 
-        return [x, y]
+        com = np.array([[x, y]]).T
 
-    def assign_frame():
+        return com
+
+    def __assign_frame(self):
         R = 0.1
         alpha = rnd.uniform(0, 2 * np.pi)
 
@@ -38,8 +69,16 @@ class Manipulandum(object):
 
         return [x_dx, x_dy], [y_dx, y_dy]
 
+    @property
+    def com(self) -> list:
+        return self.__com
 
-# contour = shape.get_bezier_curve()
-# centre = com(contour)
+    @property
+    def phi(self) -> float:
+        return self.__phi
 
-# x_axis, y_axis = assign_frame(centre)
+    @property
+    def contour(self) -> object:
+        return self.__contour
+
+
