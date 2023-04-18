@@ -39,7 +39,7 @@ agent3, = ax.plot([], [], lw=2, marker='o', color='magenta')
 
 
 def defineRange():
-    margin = 1
+    margin = 0.55
 
     x_min, y_min = path[:, :2].min(axis=0)
     x_max, y_max = path[:, :2].max(axis=0)
@@ -91,10 +91,10 @@ def update(i):
 
     manip.set_data(contour[0], contour[1])
 
-    # for j in range(cp_n * swarm.n):
-    #     agent_position = R.dot(np.array([[a * np.cos(theta[i][j]), b * np.sin(theta[i][j])]]).T)
-    #     agent, = agents[j]
-    #     agent.set_data(centre[0] + agent_position[0], centre[1] + agent_position[1])
+    for j in range(cp_n * swarm.n):
+        agent_position = R.dot(obj.get_point(s[i][j]))
+        agent, = agents[j]
+        agent.set_data(centre[0] + agent_position[0], centre[1] + agent_position[1])
 
     return centroid, manip,
 

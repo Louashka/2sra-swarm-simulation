@@ -2,28 +2,31 @@ import shape
 from pyefd import elliptic_fourier_descriptors, plot_efd
 import cv2 as cv
 import numpy as np
+import math
 
 class Manipulandum(object):
 
     def __init__(self) -> None:
-        self.__contour = self.__generate_contour()
         self.__phi = 0
+        self.__m = 10
+        self.__contour = self.__generate_contour()
 
     def __generate_contour(self):
         contour_original = shape.get_bezier_curve()
+        # th = np.linspace(0, 2 * np.pi, 100)
+        # contour_original = [0.5 * np.cos(th), 0.3 * np.sin(th)]
 
         contour_original = np.array(contour_original[:2])
         contour_original -= self.__com(contour_original)
 
-        m = 10
-        coeffs = elliptic_fourier_descriptors(contour_original.T, order=m)
+        self.__coeffs = elliptic_fourier_descriptors(contour_original.T, order = self.__m)
 
         z = []
         s_array = np.linspace(0, 1, 500)
-        for i in range(m):
+        for i in range(self.__m):
             z_k = np.zeros((len(s_array),2))
             j = 0
-            coef = coeffs[i,:].reshape(2, 2)
+            coef = self.__coeffs[i,:].reshape(2, 2)
             for s in s_array:
                 arg = 2 * np.pi * (i + 1) * s
                 exp = np.array([[np.cos(arg)], [np.sin(arg)]])
@@ -32,7 +35,7 @@ class Manipulandum(object):
             z.append(z_k)
 
         contour_fourier = sum(z).T
-        contour_fourier -= self.__com(contour_fourier)
+        # contour_fourier -= self.__com(contour_fourier)
 
         self.__com = self.__com(contour_fourier)
 
@@ -55,19 +58,58 @@ class Manipulandum(object):
 
         return com
 
-    def __assign_frame(self):
-        R = 0.1
-        alpha = rnd.uniform(0, 2 * np.pi)
+    def get_point(self, s) -> list:
+        coords = []
 
-        x_dx = R * np.cos(alpha)
-        x_dy = R * np.sin(alpha)
+        for h in range(self.__m):
+            arg = 2 * np.pi * (h + 1) * s
+            exp = np.array([[np.cos(arg)], [np.sin(arg)]])
 
-        beta = (alpha + np.pi / 2) % (2 * np.pi)
+            coef = self.__coeffs[h,:].reshape(2, 2)
+            coord_h = np.matmul(coef, exp).T
 
-        y_dx = R * np.cos(beta)
-        y_dy = R * np.sin(beta)
+            coords.append(coord_h)
 
-        return [x_dx, x_dy], [y_dx, y_dy]
+        point = sum(coords).T
+
+        return point
+
+    def get_tangent(self, s) -> float:
+        diffs = []
+
+        for h in range(self.__m):
+            c = 2 * np.pi * (h + 1)
+            arg = c * s
+            exp = np.array([[-c * np.sin(arg)], [c * np.cos(arg)]])
+
+            coef = self.__coeffs[h,:].reshape(2, 2)
+            diffs_h = np.matmul(coef, exp).T
+
+            diffs.append(diffs_h)
+
+        diff = sum(diffs).T
+        theta = math.atan(diff[1]/diff[0])
+
+        return theta
+
+    def get_x_hat_direc(self, s) -> float:
+        theta = self.get_tangent(s)
+        p1 = self.get_point(s)
+
+        p2 = [p1[0] + np.cos(theta), p1[1] + np.sin(theta)]
+
+        p3 = [p1[0] + np.cos(theta - np.pi/2), p1[1] + np.sin(theta - np.pi/2)]
+
+        cross_prod1 = (p1[0] - p2[0]) * (self.com[1] - p2[1]) - (p1[1] - p2[1]) * (self.com[0] - p2[0])
+        cross_prod2 = (p1[0] - p2[0]) * (p3[1] - p2[1]) - (p1[1] - p2[1]) * (p3[0] - p2[0])
+
+        condition = (abs(cross_prod1 * cross_prod2) - cross_prod1 * cross_prod2) / (-2 * cross_prod1 * cross_prod2)
+
+        return theta + condition * np.pi
+
+    @property
+    def m(self) -> int:
+        return self.__m
 
     @property
     def com(self) -> list:
@@ -80,5 +122,9 @@ class Manipulandum(object):
     @property
     def contour(self) -> object:
         return self.__contour
+
+    @property
+    def coeffs(self) -> object:
+        return self.__coeffs
 
 

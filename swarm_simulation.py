@@ -46,43 +46,49 @@ n = 2
 cp_n = 3
 swarm = Graph(n)
 
-vss = 0.04
+vsf = 0.02
 
 s = []
 L = []
 q = []
 
-q.append(q_0)
-s.append([0] * n * cp_n)
+# q.append(q_0)
+# s = [0] * n * cp_n
 
 q_current = q_0
 
-# grasp_model = ori.GraspModel(swarm, cp_n, com_fourier, contour_fourier, vsf, q_current, path[1,:])
+grasp_model = ori.GraspModel(swarm, cp_n, obj, vsf, q_current, path[1,:])
 
-# for q_d in path[1:,:]:
-#     grasp_model.update(q_current, q_d)
-#     result = grasp_model.solve()
+for q_d in path[1:,:]:
+    grasp_model.update(q_current, q_d)
+    result = grasp_model.solve()
 
-#     q_current = result[2]
+    q_current = result[2]
 
-#     s.append(result[0])
-#     L.append(result[1])
-#     q.append(q_current)
+    s.append(result[0])
+    L.append(result[1])
+    q.append(q_current)
 
-# for l in L:
-#     print([l[0], l[1]])
-
-# for flag, th in zip(flags, theta):
-#     print([abs(th[0] - th[1]), abs(th[1] - th[2]), abs(th[0] - th[2])])
-#     print(flag)
-
-# for th in theta:
-# '[]'    print(th)
-#     print(D.dot(th))
 
 # PLOT THE RESULT
 
 graphics.plot_motion(swarm, cp_n, obj, path[::5], q, s)
+
+# s_array = np.linspace(0, 1, 30)
+
+# plt.plot(obj.contour[0], obj.contour[1])
+
+# r = 0.05
+
+# for s in s_array:
+#     p0 = obj.get_point(s)
+#     theta = obj.get_x_hat_direc(s)
+#     p1 = [p0[0] + r * np.cos(theta), p0[1] + r * np.sin(theta)]
+
+#     plt.plot(p0[0], p0[1], 'k.')
+#     plt.plot([p0[0], p1[0]], [p0[1], p1[1]], color='red')
+
+# plt.show()
 
 
 # tr = mas.rendezvous(swarm)
