@@ -4,7 +4,7 @@ import numpy as np
 import shape
 
 class GraspModel():
-    def __init__(self, swarm, cp_n, obj, vsf, q_0, q_d) -> None:
+    def __init__(self, swarm, cp_n, obj, vsf, q_0, q_d, s_0) -> None:
 
         self.__n = swarm.n
         self.__cp_n = cp_n
@@ -18,9 +18,9 @@ class GraspModel():
         self.__solver = po.SolverFactory('ipopt')
         # self.__solver = po.SolverFactory('mindtpy')
 
-        self.__build_model(q_0, q_d)
+        self.__build_model(q_0, q_d, s_0)
 
-    def __build_model(self, q_0, q_d):
+    def __build_model(self, q_0, q_d, s_0):
 
         # Define sets
 
@@ -102,6 +102,7 @@ class GraspModel():
 
         self.__model.q_d = pe.Param(self.__model.dof, initialize={1: q_d[0], 2: q_d[1], 3: q_d[2]}, mutable=True)
         self.__model.q_0 = pe.Param(self.__model.dof, initialize={1: q_0[0], 2: q_0[1], 3: q_0[2]}, mutable=True)
+        self.__model.s_0 = pe.Param(self.__model.contact_points, initialize=dict(zip(self.__model.contact_points, s_0)), mutable=True)
 
         # Define variables
 
@@ -120,8 +121,9 @@ class GraspModel():
 
             tracking_error = sum((m.q_d[j] - m.q[j])**2 for j in m.dof)
             contact_forces = sum(m.L[j]**2 for j in m.forces)
+            robots_displacement = sum((m.s[j] - m.s_0[j])**2 for j in m.contact_points)
 
-            return tracking_error + contact_forces
+            return tracking_error + contact_forces + 0.1 * robots_displacement
 
         # Define constraints
 
@@ -166,10 +168,12 @@ class GraspModel():
             return lhs == rhs
 
 
-    def update(self, q_0, q_d):
+    def update(self, q_0, q_d, s_0):
         for i in self.__model.dof:
             self.__model.q_0[i] = q_0[i-1]
             self.__model.q_d[i] = q_d[i-1]
+        for i in self.__model.contact_points:
+            self.__model.s_0[i] = s_0[i-1]
 
     def solve(self):
         result = self.__solver.solve(self.__model, tee=True)
@@ -177,7 +181,6 @@ class GraspModel():
         s = [pe.value(self.__model.s[key]) for key in self.__model.contact_points]
         L = [pe.value(self.__model.L[key]) for key in self.__model.forces]
         q = [pe.value(self.__model.q[key]) for key in self.__model.dof]
-        # flags = [pe.value(self.__model.flag[key]) for key in self.__model.robots]
 
         return s, L, q
 

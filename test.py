@@ -120,7 +120,7 @@ plot_efd(coeffs, contour=contour)
 
 contour_fourier = sum(z)
 com_fourier = np.average(contour_fourier, axis=0)
-contour_fourier = contour_fourier - com_fourier
+# contour_fourier = contour_fourier - com_fourier
 
 
 plt.plot(contour[:,0], contour[:,1])

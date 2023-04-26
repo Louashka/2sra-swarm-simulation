@@ -55,7 +55,7 @@ def get_bezier_curve(rad=0.2, edgy=0):
           control points.
     *edgy* is a parameter which controls how "edgy" the curve is,
            edgy=0 is smoothest."""
-    a = get_random_points(n=5, scale=1)
+    a = get_random_points(n=7, scale=1)
 
     p = np.arctan(edgy)/np.pi+.5
     a = ccw_sort(a)

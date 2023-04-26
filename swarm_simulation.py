@@ -6,39 +6,62 @@ import mas
 import ori
 import graphics
 import manipulandum as mp
+import pickle
 
 
 # ORIGINAL SHAPE
 
-obj = mp.Manipulandum()
+def generate_path(obj):
+    path = []
 
-# GENERATE A PATH
+    dt = 0.05
+    t = 0
+    velocity = [0, 1, 0.8]
 
-dt = 0.05
-t = 0
-
-q_0 = np.append(obj.com, obj.phi)
-
-path = []
-q_current = q_0
-path.append(q_current)
-
-velocity = [0, 0.6, -0.3]
-# velocity = [rnd.uniform(-1, 1), rnd.uniform(-1, 1), rnd.uniform(-0.8, 0.8)]
-# print(velocity)
-
-while  t < 5:
-    R = np.array([[np.cos(q_current[2]), -np.sin(q_current[2]), 0], [np.sin(q_current[2]), np.cos(q_current[2]), 0], [0, 0, 1]])
-
-    q_dot = R.dot(velocity)
-
-    q_current = q_current + q_dot * dt
-
+    q_current = np.append(obj.com, obj.phi)
     path.append(q_current)
-    t += dt
+    while  t < 5:
 
-path = np.array(path)
-# print(path)
+        if t > 2.5:
+            velocity[-1] = -0.5
+
+        R = np.array([[np.cos(q_current[2]), -np.sin(q_current[2]), 0], [np.sin(q_current[2]), np.cos(q_current[2]), 0], [0, 0, 1]])
+
+        q_dot = R.dot(velocity)
+
+        q_current = q_current + q_dot * dt
+
+        path.append(q_current)
+        t += dt
+
+
+    return np.array(path)
+
+def load_data():
+    db_file = open('manipulandum_data', 'rb')
+    obj, path = pickle.load(db_file)
+
+    db_file.close()
+
+    return obj, path
+
+def store_data(obj, path):
+    dbfile = open('manipulandum_data', 'wb')
+    db = [obj, path]
+
+    pickle.dump(db, dbfile)
+    dbfile.close()
+
+
+
+try:
+    obj, path = load_data()
+except (OSError, IOError) as e:
+    obj = mp.Manipulandum()
+    path = generate_path(obj)
+
+    store_data(obj, path)
+
 
 # OPTIMISATION PROBLEM
 
@@ -55,17 +78,19 @@ q = []
 # q.append(q_0)
 # s = [0] * n * cp_n
 
-q_current = q_0
+q_current = path[0,:]
+s_current = [0] * n * cp_n
 
-grasp_model = ori.GraspModel(swarm, cp_n, obj, vsf, q_current, path[1,:])
+grasp_model = ori.GraspModel(swarm, cp_n, obj, vsf, q_current, path[1,:], s_current)
 
 for q_d in path[1:,:]:
-    grasp_model.update(q_current, q_d)
+    grasp_model.update(q_current, q_d, s_current)
     result = grasp_model.solve()
 
+    s_current = result[0]
     q_current = result[2]
 
-    s.append(result[0])
+    s.append(s_current)
     L.append(result[1])
     q.append(q_current)
 
