@@ -4,7 +4,7 @@ import numpy as np
 import shape
 
 class GraspModel():
-    def __init__(self, swarm, cp_n, obj, vsf, q_0, q_d, s_0) -> None:
+    def __init__(self, swarm, cp_n, obj, vsf, q_0, q_d, s_0, w) -> None:
 
         self.__n = swarm.n
         self.__cp_n = cp_n
@@ -18,9 +18,9 @@ class GraspModel():
         self.__solver = po.SolverFactory('ipopt')
         # self.__solver = po.SolverFactory('mindtpy')
 
-        self.__build_model(q_0, q_d, s_0)
+        self.__build_model(q_0, q_d, s_0, w)
 
-    def __build_model(self, q_0, q_d, s_0):
+    def __build_model(self, q_0, q_d, s_0, w):
 
         # Define sets
 
@@ -104,6 +104,8 @@ class GraspModel():
         self.__model.q_0 = pe.Param(self.__model.dof, initialize={1: q_0[0], 2: q_0[1], 3: q_0[2]}, mutable=True)
         self.__model.s_0 = pe.Param(self.__model.contact_points, initialize=dict(zip(self.__model.contact_points, s_0)), mutable=True)
 
+        self.__model.w = pe.Param(self.__model.dof, initialize=dict(zip(self.__model.dof, w)))
+
         # Define variables
 
         self.__model.point_theta = pe.Var(self.__model.contact_points, domain=pe.Reals)
@@ -123,7 +125,7 @@ class GraspModel():
             contact_forces = sum(m.L[j]**2 for j in m.forces)
             robots_displacement = sum((m.s[j] - m.s_0[j])**2 for j in m.contact_points)
 
-            return tracking_error + contact_forces + 0.1 * robots_displacement
+            return m.w[1] * tracking_error + m.w[2] * contact_forces + m.w[3] * robots_displacement
 
         # Define constraints
 
