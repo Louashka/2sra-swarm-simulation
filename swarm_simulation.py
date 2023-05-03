@@ -8,14 +8,20 @@ import graphics
 import manipulandum as mp
 import pickle
 import pandas as pd
+from pyomo.opt import SolverStatus, TerminationCondition
 
 
 # ORIGINAL SHAPE
 
+vsf = 0.02
+n_robots = 2
+swarm = Graph(vsf, n_robots)
+cp_n = 3
+
 def generate_path(obj):
     path = []
 
-    dt = 0.05
+    dt = 0.25
     t = 0
     velocity = [0, rnd.uniform(0.5, 1), rnd.uniform(-1, 1)]
 
@@ -61,75 +67,74 @@ def store_data(obj, path):
     pickle.dump(db, dbfile)
     dbfile.close()
 
-def experiment():
+def experiment(shape_id):
 
-    n_robots = 2
-    swarm = Graph(n_robots)
-    cp_n = 3
-    vsf = 0.02
-
-    n_shapes = 1
-    w_span = np.linspace(0, 0.2, 21)
-    # w_span = [0.05, 0.1, 0.15]
-    shape_id = 10
+    # w_span = np.linspace(0, 0.2, 21)
+    # w_span = np.linspace(0.21, 0.5, 30)
+    w_span = np.linspace(0, 0.5, 51)
+    # w_span = [0.02]
 
     df = pd.DataFrame()
 
-    id_data = []
-    time_data = []
-    path_data = []
-    q_data = []
-    L_data = []
+    # try:
+    #     obj, path = load_data()
+    # except (OSError, IOError) as e:
+    #     obj = mp.Manipulandum()
+    #     path = generate_path(obj)
+
+    #     store_data(obj, path)
+
+    obj = mp.Manipulandum()
+    path = generate_path(obj)
+    shape_status = True
+
+    grasp_model = ori.GraspModel(swarm, cp_n, obj, path, [0.5, 0.5, 0])
+
     s_data = []
-    w_data = []
+    L_data = []
+    q_data = []
 
-    for n in range(n_shapes):
+    for w3 in w_span:
+        print(str(w3) + " ...")
+        w = [(1-w3)/2, (1-w3)/2, w3]
 
-        obj = mp.Manipulandum()
-        path = generate_path(obj)
+        grasp_model.update(w)
+        solution_status = grasp_model.solve()
 
-        for w3 in w_span:
-            q_current = path[0,:]
-            s_current = [0] * swarm.n * cp_n
-            w = [1, 1, w3]
+        if solution_status:
+            results, s, L, q = grasp_model.parse_results()
 
-            grasp_model = ori.GraspModel(swarm, cp_n, obj, vsf, q_current, path[1,:], s_current, w)
+            if (results.solver.status == SolverStatus.ok) and (results.solver.termination_condition == TerminationCondition.optimal):
+                s_data.append(s)
+                L_data.append(L)
+                q_data.append(q)
+                print("Success!")
+            else:
+                print("Terminated! Start again!")
+                shape_status = False
+                experiment(shape_id)
+        else:
+            print("Restoration failed! Start again!")
+            shape_status = False
+            experiment(shape_id)
 
-            # s = []
-            # L = []
-            # q = []
-            t = 1
+    if shape_status:
+        id_data = [shape_id] * len(w_span)
+        path_data = [path.tolist()] * len(w_span)
 
-            for q_d in path[1:,:]:
-                grasp_model.update(q_current, q_d, s_current)
-                result = grasp_model.solve()
+        data = {"id": id_data, "target_pose": path_data, "pose": q_data, "force": L_data, "contact_locations": s_data, "weight": w_span}
+        df = pd.DataFrame(data)
+        df.to_csv('weights_experiment.csv', index=False, mode='a')
 
-                s_current = result[0]
-                q_current = result[2]
+        print("Data is saved!")
 
-                # s.append(s_current)
-                # L.append(result[1])
-                # q.append(q_current)
-
-                id_data.append(shape_id)
-                time_data.append(t)
-                path_data.append(q_d.tolist())
-                q_data.append(q_current)
-                L_data.append(result[1])
-                s_data.append(s_current)
-                w_data.append(w3)
-
-                t += 1
-
-        shape_id += 1
-
-    data = {"id": id_data, "time": time_data, "target_pose": path_data, "pose": q_data, "force": L_data, "contact_locations": s_data, "weight": w_data}
-    df = pd.DataFrame(data)
-    df.to_csv('weights_experiment.csv', index=False, mode='a')
+        if shape_id < 30:
+            print("Shape id: " + str(shape_id))
+            experiment(shape_id + 1)
 
 
-experiment()
-# w_span = np.linspace(0, 0.4, 41)
+experiment(1)
+# w_span = np.linspace(0, 0.5, 51)
 # print(w_span)
 
 
@@ -141,18 +146,20 @@ experiment()
 
 #     store_data(obj, path)
 
+# print(path.shape)
+
 
 # # OPTIMISATION PROBLEM
 
-# n = 2
-# cp_n = 3
-# swarm = Graph(n)
-
 # vsf = 0.02
+# n = 2
+# swarm = Graph(vsf, n)
 
-# s = []
-# L = []
-# q = []
+# cp_n = 3
+
+# # s = []
+# # L = []
+# # q = []
 
 # # q.append(q_0)
 # # s = [0] * n * cp_n
@@ -160,25 +167,27 @@ experiment()
 # q_current = path[0,:]
 # s_current = [0] * n * cp_n
 
-# w = [1, 1, 0]
+# w = [0.5, 0.5, 0]
 
-# grasp_model = ori.GraspModel(swarm, cp_n, obj, vsf, q_current, path[1,:], s_current, w)
+# grasp_model = ori.GraspModel(swarm, cp_n, obj, path, w)
+# res, s, L, q = grasp_model.solve()
 
-# for q_d in path[1:,:]:
-#     grasp_model.update(q_current, q_d, s_current)
-#     result = grasp_model.solve()
+# # for q_d in path[1:,:]:
+# #     grasp_model.update(q_current, q_d, s_current)
+# #     result = grasp_model.solve()
 
-#     s_current = result[0]
-#     q_current = result[2]
+# #     s_current = result[0]
+# #     q_current = result[2]
 
-#     s.append(s_current)
-#     L.append(result[1])
-#     q.append(q_current)
+# #     s.append(s_current)
+# #     L.append(result[1])
+# #     q.append(q_current)
 
 
 # # PLOT THE RESULT
+# # print(q)
 
-# graphics.plot_motion(swarm, cp_n, obj, path[::5], q, s)
+# graphics.plot_motion(swarm, cp_n, obj, path, q, s)
 
 
 

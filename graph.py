@@ -6,11 +6,12 @@ import globals_
 
 class Graph:
 
-    def __init__(self, n, agent_type="dot") -> None:
+    def __init__(self, l_vsf, n, agent_type="dot") -> None:
 
         if agent_type not in {"dot", "oriented", "2SR"}:
             raise Exception("Invalid robot type!")
 
+        self.__vsf = l_vsf
         self.__n = n
         self.__type = agent_type
         self.__graph_dict = {}
@@ -27,6 +28,10 @@ class Graph:
     @property
     def n(self) -> float:
         return self.__n
+
+    @property
+    def vsf(self) -> float:
+        return self.__vsf
 
     @property
     def type(self) -> float:
