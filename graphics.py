@@ -117,6 +117,6 @@ def plot_motion(swarm_, cp_n_, obj_, path_, q_, s_):
 
     # Save animation
     mywriter = FFMpegWriter(fps=30)
-    anim.save('Animation/Case3/grasping_01.mp4', writer=mywriter, dpi=300)
+    anim.save('Animation/Weight exp/exp7.mp4', writer=mywriter, dpi=300)
 
     plt.show()

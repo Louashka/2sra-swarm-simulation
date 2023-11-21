@@ -67,27 +67,25 @@ def store_data(obj, path):
     pickle.dump(db, dbfile)
     dbfile.close()
 
-def experiment(shape_id):
-
-    # w_span = np.linspace(0, 0.2, 21)
-    # w_span = np.linspace(0.21, 0.5, 30)
-    w_span = np.linspace(0, 0.5, 51)
-    # w_span = [0.02]
-
-    df = pd.DataFrame()
-
-    # try:
-    #     obj, path = load_data()
-    # except (OSError, IOError) as e:
-    #     obj = mp.Manipulandum()
-    #     path = generate_path(obj)
-
-    #     store_data(obj, path)
-
+def create_shape():
     obj = mp.Manipulandum()
     path = generate_path(obj)
-    shape_status = True
 
+    store_data(obj, path)
+
+    return obj, path
+
+def get_shape(restore=False):
+    if restore:
+        try:
+            return load_data()
+        except (OSError, IOError) as e:
+            return create_shape()
+    else:
+        return create_shape()
+
+def oap(obj, path, w_span):
+    shape_status = True
     grasp_model = ori.GraspModel(swarm, cp_n, obj, path, [0.5, 0.5, 0])
 
     s_data = []
@@ -112,11 +110,19 @@ def experiment(shape_id):
             else:
                 print("Terminated! Start again!")
                 shape_status = False
-                experiment(shape_id)
         else:
             print("Restoration failed! Start again!")
             shape_status = False
-            experiment(shape_id)
+
+        return shape_status, s_data, L_data, q_data
+
+
+def experiment(shape_id):
+    w_span = np.linspace(0, 0.5, 51)
+    df = pd.DataFrame()
+
+    obj, path = get_shape()
+    shape_status, s_data, L_data, q_data = oap(obj, path, w_span)
 
     if shape_status:
         id_data = [shape_id] * len(w_span)
@@ -126,68 +132,32 @@ def experiment(shape_id):
         df = pd.DataFrame(data)
         df.to_csv('weights_experiment.csv', index=False, mode='a')
 
+        print("Shape id: " + str(shape_id))
         print("Data is saved!")
 
         if shape_id < 30:
-            print("Shape id: " + str(shape_id))
             experiment(shape_id + 1)
 
-
-experiment(1)
-# w_span = np.linspace(0, 0.5, 51)
-# print(w_span)
+    else:
+        xperiment(shape_id)
 
 
-# try:
-#     obj, path = load_data()
-# except (OSError, IOError) as e:
-#     obj = mp.Manipulandum()
-#     path = generate_path(obj)
+# experiment(1)
 
-#     store_data(obj, path)
+obj, path = get_shape()
+shape_status, s, L, q = oap(obj, path, [0.28])
 
-# print(path.shape)
-
-
-# # OPTIMISATION PROBLEM
-
-# vsf = 0.02
-# n = 2
-# swarm = Graph(vsf, n)
-
-# cp_n = 3
-
-# # s = []
-# # L = []
-# # q = []
-
-# # q.append(q_0)
-# # s = [0] * n * cp_n
-
-# q_current = path[0,:]
-# s_current = [0] * n * cp_n
-
-# w = [0.5, 0.5, 0]
-
-# grasp_model = ori.GraspModel(swarm, cp_n, obj, path, w)
-# res, s, L, q = grasp_model.solve()
-
-# # for q_d in path[1:,:]:
-# #     grasp_model.update(q_current, q_d, s_current)
-# #     result = grasp_model.solve()
-
-# #     s_current = result[0]
-# #     q_current = result[2]
-
-# #     s.append(s_current)
-# #     L.append(result[1])
-# #     q.append(q_current)
+while True:
+    if shape_status:
+        break
+    else:
+        obj, path = get_shape()
+        shape_status, s, L, q = oap(obj, path, [0.28])
 
 
 # # PLOT THE RESULT
-# # print(q)
 
-# graphics.plot_motion(swarm, cp_n, obj, path, q, s)
+graphics.plot_motion(swarm, cp_n, obj, path, q[0], s[0])
 
 
 
